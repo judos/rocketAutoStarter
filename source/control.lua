@@ -57,7 +57,7 @@ script.on_event(defines.events.on_tick, function(event)
 	end
 	for _,idEntity in pairs(global.rocketAutoStarter.schedule[game.tick]) do
 		local entity = entityOfId(idEntity)
-		if entity and entity.valid then
+		if entity and entity.valid and entity.name==entityName then
 			local nextUpdateInXTicks, reasonMessage = runEntityInstructions(idEntity, entity)
 			if reasonMessage ~= nil then
 				debug(entityName.." at " .. entity.position.x .. ", " ..entity.position.y .. ": "..reasonMessage)
@@ -151,7 +151,9 @@ function runEntityInstructions(idOfEntity, entity)
 	}
 	local rocketsStarted = 0
 	for _,pointOfEntity in pairs(scan_coords) do
+		debug("testing point: "..serpent.block(pointOfEntity))
 		local silos = entity.surface.find_entities_filtered{area = {pointOfEntity,pointOfEntity}, type = "rocket-silo"}
+		debug("found silos: "..serpent.block(silos))
 		if silos and #silos == 1 then
 			local silo = silos[1]
 			if silo.get_item_count("satellite") > 0 then
