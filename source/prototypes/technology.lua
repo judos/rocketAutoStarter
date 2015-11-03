@@ -1,0 +1,2 @@
+addTechnologyUnlocksRecipe("rocket-silo","rocketAutoStarter")
+
