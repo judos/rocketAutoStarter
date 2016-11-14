@@ -1,9 +1,10 @@
 {
   "name": "rocketAutoStarter",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "title": "Rocket Autostarter",
   "author": "judos",
   "description": "Adds a control building which automatically starts nearby rockets with satellites",
-	"dependencies": ["base >= 0.12.11"],
+	"dependencies": ["base >= 0.14.0"],
+	"factorio_version": "0.14",
 	"homepage": "https://github.com/judos/rocketAutoStarter"
 }

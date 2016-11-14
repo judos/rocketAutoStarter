@@ -7,7 +7,7 @@ data:extend(
     ingredients =
     {
       {"steel-plate", 5},
-      {"electronic-circuit", 10},
+      {"advanced-circuit", 10},
       {"copper-cable", 5},
     },
     result = "rocketAutoStarter",

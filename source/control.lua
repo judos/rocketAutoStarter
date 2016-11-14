@@ -1,38 +1,31 @@
-require "defines"
 require "config"
-require "prototypes.basic-lua-extensions"
-
-local entityName = "rocketAutoStarter"
-
--- global data stored and used:
--- global.rocketAutoStarter.schedule[tick] = { idEntity(rocketAutoStarter), ... }
+require "libs.functions"
+require "libs.entities"
 
 ---------------------------------------------------
 -- Loading
 ---------------------------------------------------
 script.on_init(function()
-	onLoad()
-end)
-script.on_load(function()
-	onLoad()
+	migration()
 end)
 
-function onLoad()
-	if not global then
-		global = {}
-		game.forces.player.reset_technologies()
-		game.forces.player.reset_recipes()
-	end
-	debug("onload"..serpent.block(global.rocketAutoStarter))
+script.on_configuration_changed(function()
+	migration()
+end)
+
+script.on_load(function()
+	info("version before: "..global.rocketAutoStarter.version)
+end)
+
+function migration()
+	info("migration: "..serpent.block(global.rocketAutoStarter))
 	if not global.rocketAutoStarter then
 		global.rocketAutoStarter = {}
-		global.rocketAutoStarter.version = "0.1.0"
-		global.rocketAutoStarter.schedule = {}
+	elseif global.rocketAutoStarter == "0.1.0" then
+		global.rocketAutoStarter.schedule = nil
 	end
-	if not global.rocketAutoStarter.schedule then
-		debug("initialized global.schedule")
-		global.rocketAutoStarter.schedule = {}
-	end
+	global.rocketAutoStarter.version = "0.2.0"
+	entities_init()
 end
 
 ---------------------------------------------------
@@ -44,104 +37,45 @@ script.on_event(defines.events.on_tick, function(event)
 		local ticksPerMinute = 60 * 60
 		if game.tick > global.rocketAutoStarter.firstRocket + messageForSentRocketsEveryMinutes * ticksPerMinute then
 			if global.rocketAutoStarter.rockets > 0 then
-				playerPrint("Rockets automatically started in the last "..messageForSentRocketsEveryMinutes.." minutes: "..global.rocketAutoStarter.rockets)
+				libLog.PlayerPrint("Rockets automatically started in the last "..messageForSentRocketsEveryMinutes.." minutes: "..global.rocketAutoStarter.rockets)
 				global.rocketAutoStarter.firstRocket = nil
 				global.rocketAutoStarter.rockets = nil
 			end
 		end
 	end
 	
-  -- if no updates are scheduled return
-	if type(global.rocketAutoStarter.schedule[game.tick]) ~= "table" then
-		return
-	end
-	for _,idEntity in pairs(global.rocketAutoStarter.schedule[game.tick]) do
-		local entity = entityOfId(idEntity)
-		if entity and entity.valid and entity.name==entityName then
-			local nextUpdateInXTicks, reasonMessage = runEntityInstructions(idEntity, entity)
-			if reasonMessage ~= nil then
-				debug(entityName.." at " .. entity.position.x .. ", " ..entity.position.y .. ": "..reasonMessage)
-			end
-			if nextUpdateInXTicks ~= nil then
-				scheduleAdd(entity, game.tick + nextUpdateInXTicks)
-			else
-				-- if no more update is scheduled, remove it from memory
-				-- nothing to be done here, the entity will just not be scheduled anymore
-			end
-		else
-			-- if entity was removed, remove it from memory
-			-- nothing to be done here, the entity will just not be scheduled anymore
-		end
-	end
-	global.rocketAutoStarter.schedule[game.tick] = nil
+	entities_tick()
 end)
 
 ---------------------------------------------------
 -- Building entities
 ---------------------------------------------------
 script.on_event(defines.events.on_built_entity, function(event)
-	if event.created_entity.name == entityName then
-		entityBuilt(event.created_entity)
-	end
+	entities_build(event)
 end)
 script.on_event(defines.events.on_robot_built_entity, function(event)
-	if event.created_entity.name == entityName then
-		entityBuilt(event.created_entity)
-	end
+	entities_build(event)
 end)
 
-function entityBuilt(entity)
-	debug("Entity built in tick "..game.tick.." and added it for update tick")
+---------------------------------------------------
+-- Register entity
+---------------------------------------------------
+
+local rocketAutoStarter = {}
+entities["rocketAutoStarter"] = rocketAutoStarter
+
+rocketAutoStarter.build = function(entity)
+	info("Entity built in tick "..game.tick.." and added it for update tick")
 	scheduleAdd(entity, game.tick + updateEveryTicks)
+	entity.operable = false
+	entity.rotatable = false
+	return {}
 end
-
----------------------------------------------------
--- Removal of entities
----------------------------------------------------
--- because no coordinate is passed for the following functions, we take care of this in the tick method
---[[
-script.on_event(defines.events.on_player_mined_item, function(event)
-	if event.item_stack.name == entityName then ... end
-end)
-script.on_event(defines.events.on_robot_mined, function(event)
-	if event.item_stack.name == entityName then ... end
-end)
-script.on_event(defines.events.on_entity_died, function(event)
-	if event.item_stack.name == entityName then ... end
-end)
-]]--
-
----------------------------------------------------
--- Utility methods
----------------------------------------------------
--- Adds new entry to the scheduling table
-function scheduleAdd(entity, nextTick)
-	if global.rocketAutoStarter.schedule[nextTick] == nil then
-		global.rocketAutoStarter.schedule[nextTick] = {}
-	end
-	table.insert(global.rocketAutoStarter.schedule[nextTick],idOfEntity(entity))
-end
-
-function idOfEntity(entity)
-	return string.format("%g_%g", entity.position.x, entity.position.y)
-end
-function entityOfId(id)
-	local position = split(id,"_")
-	local point = {tonumber(position[1]),tonumber(position[2])}
-	local entities = game.surfaces.nauvis.find_entities{point,point}
-	if entities == nil then return nil end
-	if #entities == 0 then return nil end
-	return entities[1]
-end
-
----------------------------------------------------
--- Update methods
----------------------------------------------------
 
 -- parameters: entity
 -- return values: tickDelayForNextUpdate, reasonMessage
-function runEntityInstructions(idOfEntity, entity)
-	local pos = {x = entity.position.x, y = entity.position.y}
+rocketAutoStarter.tick = function(entity,data)
+	local pos = entity.position
 	
 	local scan_coords = { -- Points to search
 		{pos.x - 1, pos.y}, -- west
@@ -151,9 +85,9 @@ function runEntityInstructions(idOfEntity, entity)
 	}
 	local rocketsStarted = 0
 	for _,pointOfEntity in pairs(scan_coords) do
-		debug("testing point: "..serpent.block(pointOfEntity))
-		local silos = entity.surface.find_entities_filtered{area = {pointOfEntity,pointOfEntity}, type = "rocket-silo"}
-		debug("found silos: "..serpent.block(silos))
+		info("testing point: "..serpent.block(pointOfEntity))
+		local silos = entity.surface.find_entities_filtered{position = pointOfEntity, type = "rocket-silo"}
+		info("found silos: "..serpent.block(silos))
 		if silos and #silos == 1 then
 			local silo = silos[1]
 			if silo.get_item_count("satellite") > 0 then

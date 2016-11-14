@@ -1,4 +1,3 @@
-debug_master = true -- Master switch for debugging, prints debug stuff into the shell where factorio was started from
 
 updateEveryTicks = 10*60 -- the next update is triggered X ticks later
 
