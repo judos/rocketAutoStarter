@@ -1,5 +1,5 @@
 
-modVersion = "0.2.0"
+modVersion = "0.2.1"
 modName = "rocketAutoStarter"
 fullModName = "rocketAutoStarter"
 
