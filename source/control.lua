@@ -78,10 +78,10 @@ rocketAutoStarter.tick = function(entity,data)
 	local pos = entity.position
 	
 	local scan_coords = { -- Points to search
-		{pos.x - 1, pos.y}, -- west
-		{pos.x + 1, pos.y}, -- east
-		{pos.x, pos.y - 1}, -- north
-		{pos.x, pos.y + 1}, -- south
+		{pos.x - 1, pos.y - 1}, -- top left
+		{pos.x + 1, pos.y - 1}, -- top right
+		{pos.x - 1, pos.y + 1}, -- bottom left
+		{pos.x + 1, pos.y + 1}, -- south
 	}
 	local rocketsStarted = 0
 	for _,pointOfEntity in pairs(scan_coords) do
@@ -90,7 +90,8 @@ rocketAutoStarter.tick = function(entity,data)
 		info("found silos: "..serpent.block(silos))
 		if silos and #silos == 1 then
 			local silo = silos[1]
-			if silo.get_item_count("satellite") > 0 then
+			local inventory = silo.get_inventory(defines.inventory.rocket_silo_rocket)
+			if inventory and not inventory.is_empty() then
 				silo.launch_rocket()
 				rocketsStarted = rocketsStarted + 1
 			end
