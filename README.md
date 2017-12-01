@@ -1,6 +1,8 @@
 # rocketAutoStarter
 Factorio mod - automatically starts your rockets when a satellite is ready
 
+-> This mod was for Factorio 0.14. Since factorio 0.15 the functionality is implemented in the base game itself.
+
 <img src="https://raw.githubusercontent.com/judos/rocketAutoStarter/master/screenshots/rocketAutoStarter1.png" />
 
 See also Factorio's forum:
